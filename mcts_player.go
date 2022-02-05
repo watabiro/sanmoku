@@ -8,23 +8,23 @@ import (
 )
 
 const (
-	threshold = 10
-	c         = 1
+	threshold = 0
+	c         = 0
 )
 
 type Node struct {
 	VisitCount    int
-	WinCount      int
+	Win           float64
 	LegalMoves    []Move
 	ChildIndicies []int
 }
 
 func NewNode(b *Board) *Node {
 	node := new(Node)
-	node.VisitCount = 0
-	node.WinCount = 0
+	node.VisitCount = 0.0
+	node.Win = 0.0
 	node.LegalMoves = b.LegalMoves()
-	node.ChildIndicies = make([]int, len(node.LegalMoves))
+	node.ChildIndicies = nil
 	return node
 }
 
@@ -40,6 +40,19 @@ func NewMCTSPlayer(color Color) *MCTSPlayer {
 	return p
 }
 
+func (p MCTSPlayer) ExpandNode(node *Node, b *Board) {
+	node.ChildIndicies = make([]int, len(node.LegalMoves))
+	for i, v := range node.LegalMoves {
+		b.Push(v)
+		index := p.findIndexFromBoard(b)
+		node.ChildIndicies[i] = index
+		if p.Nodes[index] == nil {
+			p.Nodes[index] = NewNode(b)
+		}
+		b.Pop()
+	}
+}
+
 func (p MCTSPlayer) BestMove(b *Board) Move {
 	// 現局面のノード選択
 	rootindex := p.findIndexFromBoard(b)
@@ -49,18 +62,10 @@ func (p MCTSPlayer) BestMove(b *Board) Move {
 	root := p.Nodes[rootindex]
 
 	// 子ノードの展開
-	for i, v := range root.LegalMoves {
-		b.Push(v)
-		index := p.findIndexFromBoard(b)
-		root.ChildIndicies[i] = index
-		if p.Nodes[index] == nil {
-			p.Nodes[index] = NewNode(b)
-		}
-		b.Pop()
-	}
+	p.ExpandNode(root, b)
 
 	// 探索
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 300000; i++ {
 		p.search(root, b)
 	}
 
@@ -79,18 +84,41 @@ func (p MCTSPlayer) BestMove(b *Board) Move {
 }
 
 func (p *MCTSPlayer) search(node *Node, b *Board) float64 {
+	if b.IsGameOver() {
+		if b.IsWin(b.Turn) {
+			node.Win = 1.0
+			return node.Win
+		} else if b.IsDraw() {
+			node.Win = 0.5
+			return node.Win
+		} else {
+			node.Win = 0.0
+			return node.Win
+		}
+	}
 	if node.VisitCount < threshold {
 		// rollout
-		return 1.0 - rollout(b)
+		node.VisitCount++
+		node.Win = rollout(b)
+		return node.Win
 	} else {
 		// select next move
 		// search again
-		next := p.selectNextNode(node)
-		return p.search(next, b)
+		node.VisitCount++
+		if node.ChildIndicies == nil {
+			p.ExpandNode(node, b)
+		}
+		nextIdx := p.selectNextNode(node)
+		nextMove := node.LegalMoves[nextIdx]
+		nextNode := p.Nodes[node.ChildIndicies[nextIdx]]
+		b.Push(nextMove)
+		node.Win = 1.0 - p.search(nextNode, b)
+		b.Pop()
+		return node.Win
 	}
 }
 
-func (p *MCTSPlayer) selectNextNode(node *Node) *Node {
+func (p *MCTSPlayer) selectNextNode(node *Node) int {
 	N := 0
 	v := make([]float64, len(node.ChildIndicies))
 	u := make([]float64, len(node.ChildIndicies))
@@ -104,14 +132,13 @@ func (p *MCTSPlayer) selectNextNode(node *Node) *Node {
 			v[i] = 0.0
 			u[i] = 0.0
 		} else {
-			v[i] = float64(child.WinCount) / float64(child.VisitCount)
+			v[i] = child.Win / float64(child.VisitCount)
 			u[i] = math.Sqrt(math.Log(float64(N)) / float64(child.VisitCount))
 		}
 		ucb[i] = v[i] + c*u[i]
+		// fmt.Println(v[i], u[i], ucb[i])
 	}
-	argmax := argMax(ucb)
-
-	return p.Nodes[node.ChildIndicies[argmax]]
+	return argMax(ucb)
 }
 
 func rollout(b *Board) float64 {
@@ -125,13 +152,22 @@ func rollout(b *Board) float64 {
 		b.Push(move)
 		count++
 	}
+	lose := true
+	draw := false
+	if b.IsWin(turn) {
+		lose = false
+	}
+	if b.IsDraw() {
+		draw = true
+	}
 	for i := 0; i < count; i++ {
 		b.Pop()
 	}
-	// rollout開始時の手番とゲーム終了時の手番が同じ場合は負け
-	// TODO: これじゃ引き分け判定できていない
-	if turn == b.Turn {
+	if lose {
 		return 0.0
+	}
+	if draw {
+		return 0.5
 	}
 	return 1.0
 }
@@ -149,7 +185,7 @@ func argMax(values []float64) int {
 	if len(values) < 1 {
 		panic(fmt.Errorf("argMax needs non empty list"))
 	}
-	argmax := len(values)
+	argmax := 0
 	maxval := values[0]
 	for i, v := range values {
 		if maxval >= v {

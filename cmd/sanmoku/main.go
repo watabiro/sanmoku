@@ -10,7 +10,8 @@ func main() {
 	b := sanmoku.NewBoard()
 	var p1 sanmoku.Player
 	var p2 sanmoku.Player
-	p1 = sanmoku.MinimaxPlayer{}
+	// p1 = sanmoku.MinimaxPlayer{}
+	p1 = *sanmoku.NewMCTSPlayer(sanmoku.White)
 	p2 = sanmoku.RandomPlayer{}
 	playGame(b, p1, p2)
 }
