@@ -8,38 +8,39 @@ import (
 
 func main() {
 	b := sanmoku.NewBoard()
-	b.Show()
 	var p1 sanmoku.Player
 	var p2 sanmoku.Player
-	// p1 := sanmoku.UserPlayer{Color: sanmoku.Black}
-	// p2 := sanmoku.UserPlayer{Color: sanmoku.White}
-	// p1 = sanmoku.RandomPlayer{Color: sanmoku.Black}
-	p1 = sanmoku.NewMCTSPlayer(sanmoku.Black)
-	p2 = sanmoku.RandomPlayer{Color: sanmoku.White}
-	// p2 = sanmoku.NewMCTSPlayer()
+	p1 = sanmoku.MinimaxPlayer{}
+	p2 = sanmoku.RandomPlayer{}
 	playGame(b, p1, p2)
 }
 
 func playGame(b *sanmoku.Board, p1, p2 sanmoku.Player) {
-
+	fmt.Println("start")
+	b.Show()
+	var move sanmoku.Move
 	for {
-		fmt.Println("Black Turn")
-		b.Push(p1.BestMove(b))
+		move = p1.BestMove(b)
+		fmt.Println("selected move: ", move)
+		b.Push(move)
 		b.Show()
 		if b.IsGameOver() {
 			break
 		}
-		fmt.Println("White Turn")
-		b.Push(p2.BestMove(b))
+		move = p2.BestMove(b)
+		fmt.Println(move)
+		b.Push(move)
 		b.Show()
 		if b.IsGameOver() {
 			break
 		}
 	}
 	fmt.Println("game over")
-	if b.Turn == sanmoku.Black {
+	if b.IsWin(sanmoku.Black) {
+		fmt.Println("Win: Black")
+	} else if b.IsWin(sanmoku.White) {
 		fmt.Println("Win: White")
 	} else {
-		fmt.Println("Win: Black")
+		fmt.Println("Draw")
 	}
 }

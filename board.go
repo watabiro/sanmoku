@@ -14,7 +14,7 @@ const (
 const (
 	NoStone = iota
 	BlackStone
-	WHiteStone
+	WhiteStone
 )
 
 const (
@@ -46,6 +46,11 @@ func (b *Board) Show() {
 	fmt.Printf("%s|%s|%s\n", s[b.State[3]], s[b.State[4]], s[b.State[5]])
 	fmt.Println("-----------")
 	fmt.Printf("%s|%s|%s\n", s[b.State[6]], s[b.State[7]], s[b.State[8]])
+	if b.Turn == Black {
+		fmt.Println("next turn is black")
+	} else {
+		fmt.Println("next turn is white")
+	}
 }
 
 func (b *Board) LegalMoves() []Move {
@@ -64,16 +69,25 @@ func (b *Board) Push(move Move) {
 	if move.Color == Black {
 		b.State[move.ToIndex()] = BlackStone
 	} else {
-		b.State[move.ToIndex()] = WHiteStone
+		b.State[move.ToIndex()] = WhiteStone
 	}
 	b.MoveHistory = append(b.MoveHistory, move)
-	b.Turn ^= 1
+	if b.Turn == Black {
+		b.Turn = White
+	} else {
+		b.Turn = Black
+	}
 }
 
 func (b *Board) Pop() {
 	move := b.MoveHistory[len(b.MoveHistory)-1]
 	b.State[WIDTH*move.Rank-move.File] = NoStone
 	b.MoveHistory = b.MoveHistory[:len(b.MoveHistory)-1]
+	if b.Turn == Black {
+		b.Turn = White
+	} else {
+		b.Turn = Black
+	}
 }
 
 func (b *Board) IsWin(color Color) bool {
@@ -88,32 +102,32 @@ func (b *Board) IsWin(color Color) bool {
 		{2, 4, 6},
 	}
 	var stone int
-	if color == BlackStone {
+	if color == Black {
 		stone = BlackStone
 	} else {
-		stone = WHiteStone
+		stone = WhiteStone
 	}
 	for _, target := range targets {
+		count := 0
 		for _, i := range target {
-			count := 0
 			if b.State[i] == stone {
 				count++
 			}
-			if count == 3 {
-				return true
-			}
+		}
+		if count == 3 {
+			return true
 		}
 	}
 	return false
 }
 
-func (b *Board) IsDrow() bool {
+func (b *Board) IsDraw() bool {
 	if b.IsWin(Black) || b.IsWin(White) {
 		return false
 	}
 	count := 0
 	for i := range b.State {
-		if b.State[i] > 0 {
+		if b.State[i] != NoStone {
 			count++
 		}
 	}
@@ -121,7 +135,7 @@ func (b *Board) IsDrow() bool {
 }
 
 func (b *Board) IsGameOver() bool {
-	if b.IsWin(Black) || b.IsWin(White) || b.IsDrow() {
+	if b.IsWin(Black) || b.IsWin(White) || b.IsDraw() {
 		return true
 	}
 	return false
