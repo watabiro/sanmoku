@@ -12,6 +12,12 @@ const (
 )
 
 const (
+	NoStone = iota
+	BlackStone
+	WHiteStone
+)
+
+const (
 	HEIGHT = 3
 	WIDTH  = 3
 )
@@ -46,7 +52,7 @@ func (b *Board) LegalMoves() []Move {
 	moves := make([]Move, 0, 16)
 	for i := 0; i < HEIGHT; i++ {
 		for j := 0; j < WIDTH; j++ {
-			if b.State[i*WIDTH+j] == 0 {
+			if b.State[i*WIDTH+j] == NoStone {
 				moves = append(moves, Move{File: WIDTH - j, Rank: i + 1, Color: b.Turn})
 			}
 		}
@@ -56,9 +62,9 @@ func (b *Board) LegalMoves() []Move {
 
 func (b *Board) Push(move Move) {
 	if move.Color == Black {
-		b.State[WIDTH*move.Rank-move.File] = 1
+		b.State[move.ToIndex()] = BlackStone
 	} else {
-		b.State[WIDTH*move.Rank-move.File] = 2
+		b.State[move.ToIndex()] = WHiteStone
 	}
 	b.MoveHistory = append(b.MoveHistory, move)
 	b.Turn ^= 1
@@ -66,7 +72,7 @@ func (b *Board) Push(move Move) {
 
 func (b *Board) Pop() {
 	move := b.MoveHistory[len(b.MoveHistory)-1]
-	b.State[WIDTH*move.Rank-move.File] = 0
+	b.State[WIDTH*move.Rank-move.File] = NoStone
 	b.MoveHistory = b.MoveHistory[:len(b.MoveHistory)-1]
 }
 
@@ -81,10 +87,16 @@ func (b *Board) IsWin(color Color) bool {
 		{0, 4, 8},
 		{2, 4, 6},
 	}
+	var stone int
+	if color == BlackStone {
+		stone = BlackStone
+	} else {
+		stone = WHiteStone
+	}
 	for _, target := range targets {
 		for _, i := range target {
 			count := 0
-			if b.State[i] == int(color)+1 {
+			if b.State[i] == stone {
 				count++
 			}
 			if count == 3 {

@@ -5,3 +5,7 @@ type Move struct {
 	Rank  int
 	Color Color
 }
+
+func (m Move) ToIndex() int {
+	return WIDTH*m.Rank - m.File
+}
