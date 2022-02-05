@@ -17,9 +17,9 @@ const (
 )
 
 type Board struct {
-	State []int
-	Moves []Move
-	Turn  Color
+	State       []int
+	MoveHistory []Move
+	Turn        Color
 }
 
 func NewBoard() *Board {
@@ -28,7 +28,7 @@ func NewBoard() *Board {
 	for i := range b.State {
 		b.State[i] = 0
 	}
-	b.Moves = nil
+	b.MoveHistory = nil
 	b.Turn = Black
 	return b
 }
@@ -60,14 +60,14 @@ func (b *Board) Push(move Move) {
 	} else {
 		b.State[WIDTH*move.Rank-move.File] = 2
 	}
-	b.Moves = append(b.Moves, move)
+	b.MoveHistory = append(b.MoveHistory, move)
 	b.Turn ^= 1
 }
 
 func (b *Board) Pop() {
-	move := b.Moves[len(b.Moves)-1]
+	move := b.MoveHistory[len(b.MoveHistory)-1]
 	b.State[WIDTH*move.Rank-move.File] = 0
-	b.Moves = b.Moves[:len(b.Moves)-1]
+	b.MoveHistory = b.MoveHistory[:len(b.MoveHistory)-1]
 }
 
 func (b *Board) IsGameOver() bool {
@@ -110,7 +110,7 @@ func (b *Board) IsGameOver() bool {
 			return true
 		}
 	}
-	// cross left to right
+	// diagonal lower right
 	oCount := 0
 	xCount := 0
 	for i := 0; i < 3; i++ {
@@ -123,7 +123,7 @@ func (b *Board) IsGameOver() bool {
 	if oCount == 3 || xCount == 3 {
 		return true
 	}
-	// cross left to right
+	// diagonal upper left
 	oCount = 0
 	xCount = 0
 	for i := 0; i < 3; i++ {
