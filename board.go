@@ -70,70 +70,46 @@ func (b *Board) Pop() {
 	b.MoveHistory = b.MoveHistory[:len(b.MoveHistory)-1]
 }
 
-func (b *Board) IsGameOver() bool {
-	pieceCount := 0
+func (b *Board) IsWin(color Color) bool {
+	targets := [][]int{
+		{0, 1, 2},
+		{3, 4, 5},
+		{6, 7, 8},
+		{0, 3, 6},
+		{1, 4, 7},
+		{2, 5, 8},
+		{0, 4, 8},
+		{2, 4, 6},
+	}
+	for _, target := range targets {
+		for _, i := range target {
+			count := 0
+			if b.State[i] == int(color)+1 {
+				count++
+			}
+			if count == 3 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (b *Board) IsDrow() bool {
+	if b.IsWin(Black) || b.IsWin(White) {
+		return false
+	}
+	count := 0
 	for i := range b.State {
 		if b.State[i] > 0 {
-			pieceCount++
+			count++
 		}
 	}
-	if pieceCount == 9 {
-		return true
-	}
-	// horizontal
-	for i := 0; i < 3; i++ {
-		oCount := 0
-		xCount := 0
-		for j := 0; j < 3; j++ {
-			if b.State[i*3+j] == 1 {
-				oCount++
-			} else if b.State[i*3+j] == 2 {
-				xCount++
-			}
-		}
-		if oCount == 3 || xCount == 3 {
-			return true
-		}
-	}
-	// vertical
-	for i := 0; i < 3; i++ {
-		oCount := 0
-		xCount := 0
-		for j := 0; j < 3; j++ {
-			if b.State[i+3*j] == 1 {
-				oCount++
-			} else if b.State[i+3*j] == 2 {
-				xCount++
-			}
-		}
-		if oCount == 3 || xCount == 3 {
-			return true
-		}
-	}
-	// diagonal lower right
-	oCount := 0
-	xCount := 0
-	for i := 0; i < 3; i++ {
-		if b.State[i*4] == 1 {
-			oCount++
-		} else if b.State[i*4] == 2 {
-			xCount++
-		}
-	}
-	if oCount == 3 || xCount == 3 {
-		return true
-	}
-	// diagonal upper left
-	oCount = 0
-	xCount = 0
-	for i := 0; i < 3; i++ {
-		if b.State[i*2+2] == 1 {
-			oCount++
-		} else if b.State[i*2+2] == 2 {
-			xCount++
-		}
-	}
-	if oCount == 3 || xCount == 3 {
+	return count == 9
+}
+
+func (b *Board) IsGameOver() bool {
+	if b.IsWin(Black) || b.IsWin(White) || b.IsDrow() {
 		return true
 	}
 	return false
